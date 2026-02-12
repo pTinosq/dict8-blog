@@ -9,7 +9,7 @@ I recommend following the Twilio SIP setup guide [here](https://docs.livekit.io/
 1. Buy a phone number from Twilio
 2. Set up your SIP trunk
 3. Add your phone number to the SIP trunk
-4. Set up LiveKit dashboard
+4. Set up LiveKit dashboard (Dispatch, turnks, etc.)
 
 ## Local setup
 
