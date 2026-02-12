@@ -15,4 +15,4 @@ lint:
 	uv run pyright
 
 dev:
-	uv run main.py
+	uv run --env-file=.env python -m dict8-blog.main

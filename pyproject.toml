@@ -1,3 +1,13 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [project]
 name = "dict8-blog"
 version = "0.1.0"
@@ -12,3 +22,39 @@ dependencies = [
     "python-dotenv>=1.2.1",
     "ruff>=0.15.0",
 ]
+
+[tool.ruff]
+include = ["src/**/*.py"]
+line-length = 100
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+    "F",     # Pyflakes
+    "I",     # isort
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "UP006", # Prohibits typing.List, Dict, etc.
+]
+ignore = [
+    "E501", # line-too-long, conflicting with formatter
+    "E731",
+] # assigning lambda's to variables is a good idea
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint.isort]
+known-local-folder = [
+    "src",
+    "dict8-blog",
+]
+
+[tool.pyright]
+venvPath = "."
+include = ["src"]
+exclude = ["out", "venv"]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
