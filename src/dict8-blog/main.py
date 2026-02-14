@@ -1,21 +1,12 @@
-from livekit import agents, rtc
-from livekit.agents import AgentServer, AgentSession, Agent, room_io
-from livekit.agents.beta.tools.end_call import EndCallTool
-from livekit.plugins import noise_cancellation, silero
-from livekit.plugins.turn_detector.multilingual import MultilingualModel
 import logging
 import os
 
+from livekit import agents, rtc
+from livekit.agents import AgentServer, AgentSession, room_io
+from livekit.plugins import noise_cancellation, silero
+from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
-class Assistant(Agent):
-    def __init__(self) -> None:
-        super().__init__(
-            instructions="""You are a helpful voice AI assistant.
-            You eagerly assist users with their questions by providing information from your extensive knowledge.
-            Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
-            You are curious, friendly, and have a sense of humor.""",
-            tools=[EndCallTool()],
-        )
+from .agents import ContextGatheringAgent
 
 
 server = AgentServer()
@@ -33,7 +24,7 @@ async def my_agent(ctx: agents.JobContext):
 
     await session.start(
         room=ctx.room,
-        agent=Assistant(),
+        agent=ContextGatheringAgent(),
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
                 noise_cancellation=lambda params: (
@@ -44,10 +35,6 @@ async def my_agent(ctx: agents.JobContext):
                 ),
             ),
         ),
-    )
-
-    await session.generate_reply(
-        instructions="Greet the user and offer your assistance."
     )
 
 
