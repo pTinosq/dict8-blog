@@ -29,17 +29,8 @@ line-length = 100
 indent-width = 4
 
 [tool.ruff.lint]
-select = [
-    "F",     # Pyflakes
-    "I",     # isort
-    "E",     # pycodestyle errors
-    "W",     # pycodestyle warnings
-    "UP006", # Prohibits typing.List, Dict, etc.
-]
-ignore = [
-    "E501", # line-too-long, conflicting with formatter
-    "E731",
-] # assigning lambda's to variables is a good idea
+select = ["F", "I", "E", "W", "UP006"]
+ignore = ["E501", "E731"]
 
 [tool.ruff.format]
 quote-style = "single"
@@ -47,10 +38,7 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 
 [tool.ruff.lint.isort]
-known-local-folder = [
-    "src",
-    "dict8-blog",
-]
+known-local-folder = ["src", "dict8-blog"]
 
 [tool.pyright]
 venvPath = "."
