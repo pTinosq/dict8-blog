@@ -9,14 +9,14 @@ package-dir = { "" = "src" }
 where = ["src"]
 
 [project]
-name = "dict8-blog"
+name = "dict8"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 
 dependencies = [
-    "livekit-agents[silero,turn-detector]>=1.4.1",
+    "livekit-agents[silero,turn-detector,cartesia]>=1.4.1",
     "livekit-plugins-noise-cancellation>=0.2.5",
     "pyright>=1.1.408",
     "python-dotenv>=1.2.1",
@@ -38,7 +38,7 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 
 [tool.ruff.lint.isort]
-known-local-folder = ["src", "dict8-blog"]
+known-local-folder = ["src", "dict8"]
 
 [tool.pyright]
 venvPath = "."

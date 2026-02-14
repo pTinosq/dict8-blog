@@ -10,7 +10,7 @@ install:
 	uv sync
 
 download-files:
-	uv run --env-file=.env python -m dict8-blog.main download-files
+	uv run --env-file=.env python -m dict8.main download-files
 
 lint:
 	uv run ruff check --fix
@@ -18,7 +18,7 @@ lint:
 	uv run pyright
 
 dev:
-	uv run --env-file=.env python -m dict8-blog.main dev
+	uv run --env-file=.env python -m dict8.main dev
 
 dev-console:
-	uv run --env-file=.env python -m dict8-blog.main console
+	uv run --env-file=.env python -m dict8.main console

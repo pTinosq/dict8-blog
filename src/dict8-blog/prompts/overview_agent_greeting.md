@@ -1,0 +1,1 @@
+In one or two short sentences, say you're in the overview phase and you'll go through the post together to polish it and maybe add a few image placeholders. Ask if they're ready to start or if they want to add anything first.

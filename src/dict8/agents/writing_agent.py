@@ -1,18 +1,19 @@
 from dict8.agents.base import BasePhaseAgent
 from dict8.utils import load_prompt
 
-GREETING = load_prompt("context_gathering_agent_greeting.md")
-BASE_PROMPT = load_prompt("context_gathering_agent_base.md")
+GREETING = load_prompt("writing_agent_greeting.md")
+BASE_PROMPT = load_prompt("writing_agent_base.md")
 
 
-class ContextGatheringAgent(BasePhaseAgent):
-    phase = 1
+class WritingAgent(BasePhaseAgent):
+    phase = 3
+    name = "writer"
 
     def phase_instruction(self) -> str:
         return BASE_PROMPT
 
     def voice(self) -> str:
-        return "cartesia/sonic-3:5ee9feff-1265-424a-9d7f-8e4d431a12c7"
+        return "2f251ac3-89a9-4a77-a452-704b474ccd01"
 
     async def on_enter(self) -> None:
         await self.session.generate_reply(instructions=GREETING)

@@ -3,21 +3,26 @@ import os
 
 from livekit import agents, rtc
 from livekit.agents import AgentServer, AgentSession, room_io
-from livekit.plugins import noise_cancellation, silero
+from livekit.plugins import cartesia, noise_cancellation, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
-from .agents import ContextGatheringAgent
+from dict8.agents import ContextGatheringAgent
+from dict8.agents.base import TTS_SPEED
 
 
 server = AgentServer()
 
 
-@server.rtc_session(agent_name="dict8-blog-agent")
+@server.rtc_session(agent_name="dict8-agent")
 async def my_agent(ctx: agents.JobContext):
     session = AgentSession(
         stt="deepgram/nova-3:multi",
         llm="openai/gpt-4.1-mini",
-        tts="cartesia/sonic-3:9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
+        tts=cartesia.TTS(
+            model="sonic-3",
+            voice="9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
+            speed=TTS_SPEED,
+        ),
         vad=silero.VAD.load(),
         turn_detection=MultilingualModel(),
     )
