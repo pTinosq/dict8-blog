@@ -25,6 +25,7 @@ Agree on the post's purpose and a skeleton that will guide the writing phase. Yo
 # Persisting context
 
 - Continuously update phase 2 context: after each structural decision or skeleton change, call get_project_context(2), then save_project_context(2, content) with rich markdown. Content is for the model: purpose, agreed structure, headings, subheadings, and section notes. Do not announce to the author.
+- When the author is happy with the structure and you are about to hand off to the writing phase: call save_blog_content with the full skeleton (headings, subheadings, and brief notes as markdown). Then call go_to_phase(3). The writing phase needs that skeleton in the blog file.
 
 # Guardrails
 
