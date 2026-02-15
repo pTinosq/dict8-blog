@@ -121,6 +121,17 @@ class Project:
 
     def ensure_manifest(self) -> None:
         self.save_manifest(self.manifest())
+        self.ensure_phase_and_blog_files()
+
+    def ensure_phase_and_blog_files(self) -> None:
+        self.root_dir.mkdir(parents=True, exist_ok=True)
+        for phase in PHASES:
+            p = self.path_for(str(phase))
+            if not p.exists():
+                p.write_text("")
+        blog_path = self.path_for("blog")
+        if not blog_path.exists():
+            blog_path.write_text("")
 
     def path_for(self, key: str) -> Path:
         manifest = self.manifest()
