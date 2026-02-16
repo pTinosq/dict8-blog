@@ -10,7 +10,7 @@ import os
 from typing import Any
 
 import httpx
-from livekit.agents import NOT_GIVEN, Agent, AgentSession, function_tool, inference
+from livekit.agents import NOT_GIVEN, Agent, function_tool, inference
 from livekit.agents import llm as llm_module
 from livekit.agents.llm import ChatContext, ToolContext, execute_function_call
 
@@ -18,6 +18,7 @@ TAVILY_SEARCH_URL = "https://api.tavily.com/search"
 TAVILY_TIMEOUT_S = 15.0
 RESEARCH_TIMEOUT_S = 30.0
 MAX_RESULTS = 5
+MAX_RESEARCH_ITERATIONS = 5
 
 RESEARCH_INSTRUCTIONS = """
 You are a research agent. Answer questions accurately using the web_search tool.
@@ -71,24 +72,14 @@ async def web_search(query: str) -> str:
     return "\n\n".join(lines)
 
 
-_research_agent: Agent | None = None
-
-
-def get_research_agent() -> Agent:
-    global _research_agent
-    if _research_agent is None:
-        _research_agent = Agent(
-            id="research_agent",
-            instructions=RESEARCH_INSTRUCTIONS,
-            tools=[web_search],
-            stt=None,
-            tts=None,
-            llm=inference.LLM.from_model_string("openai/gpt-4.1-mini"),
-        )
-    return _research_agent
-
-
-MAX_RESEARCH_ITERATIONS = 5
+RESEARCH_AGENT = Agent(
+    id="research_agent",
+    instructions=RESEARCH_INSTRUCTIONS,
+    tools=[web_search],
+    stt=None,
+    tts=None,
+    llm=inference.LLM.from_model_string("openai/gpt-4.1-mini"),
+)
 
 
 def _merge_tool_calls(
@@ -121,7 +112,7 @@ def _merge_tool_calls(
 
 async def run_research(query: str) -> str:
     """Run research (LLM + tools loop, no session). Returns answer text or error string."""
-    agent = get_research_agent()
+    agent = RESEARCH_AGENT
     if agent.llm is None or agent.llm is NOT_GIVEN:
         return "Error: Research agent has no LLM configured."
     if not isinstance(agent.llm, llm_module.LLM):
