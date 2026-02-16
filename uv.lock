@@ -354,6 +354,7 @@ name = "dict8"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "httpx" },
     { name = "livekit-agents", extra = ["cartesia", "silero", "turn-detector"] },
     { name = "livekit-plugins-noise-cancellation" },
     { name = "pyright" },
@@ -363,6 +364,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "livekit-agents", extras = ["silero", "turn-detector", "cartesia"], specifier = ">=1.4.1" },
     { name = "livekit-plugins-noise-cancellation", specifier = ">=0.2.5" },
     { name = "pyright", specifier = ">=1.1.408" },

@@ -7,6 +7,7 @@ from livekit.agents.llm import ChatContext
 from livekit.plugins import cartesia
 
 from dict8 import projects
+from dict8.agents.research_agent import run_research
 from dict8.utils import load_prompt
 
 BASE_INSTRUCTIONS = load_prompt("sys.md")
@@ -19,6 +20,14 @@ TRANSFER_MESSAGES = [
     "One moment, I'll send you over to our {name}.",
     "Hold on a sec, I'm connecting you with our {name}.",
     "Give me just a second. I'm transferring you to our {name}.",
+]
+
+RESEARCH_INTRO_PHRASES = [
+    "I googled it and ",
+    "I searched it up and ",
+    "I looked it up and ",
+    "I checked and ",
+    "I ran a quick search and ",
 ]
 
 
@@ -96,6 +105,17 @@ async def save_blog_content(content: str) -> str:
     return "Blog content saved."
 
 
+@function_tool()
+async def research(context: RunContext, query: str) -> str:
+    """Look up factual information on the web. You MUST call this tool whenever the author asks a fact question (who, when, what, current events, names, dates) or asks you to research/look something up. Never answer factual questions from memory—always call this tool first. When you tell the author the result, you MUST say the exact opening phrase at the start of this tool's return (e.g. 'I googled it and', 'I looked it up and') before the finding. Never omit that phrase."""
+    raw = await run_research(query)
+    if not raw or raw.startswith("Error"):
+        return raw
+    intro = random.choice(RESEARCH_INTRO_PHRASES)
+    start = f"{raw[0].lower()}{raw[1:]}" if raw[0].isupper() else raw
+    return f"{intro}{start}"
+
+
 class BasePhaseAgent(ABC, Agent):
     phase: int
     name: str
@@ -129,6 +149,7 @@ class BasePhaseAgent(ABC, Agent):
                 get_blog_content,
                 save_project_context,
                 save_blog_content,
+                research,
             ],
             chat_ctx=chat_ctx,
             tts=tts,

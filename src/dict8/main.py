@@ -2,7 +2,14 @@ import logging
 import os
 
 from livekit import agents, rtc
-from livekit.agents import AgentServer, AgentSession, room_io
+from livekit.agents import (
+    AgentServer,
+    AgentSession,
+    AudioConfig,
+    BackgroundAudioPlayer,
+    BuiltinAudioClip,
+    room_io,
+)
 from livekit.plugins import cartesia, noise_cancellation, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
@@ -10,7 +17,9 @@ from dict8.agents import ContextGatheringAgent
 from dict8.agents.base import TTS_SPEED
 
 
-server = AgentServer()
+# Raise memory warning threshold (default 500 MB is low for STT/LLM/TTS + research).
+# Silero VAD "inference is slower than realtime" is demoted so it doesn't flood logs.
+server = AgentServer(job_memory_warn_mb=2000)
 
 
 @server.rtc_session(agent_name="dict8-agent")
@@ -42,10 +51,24 @@ async def my_agent(ctx: agents.JobContext):
         ),
     )
 
+    # Thinking sound plays when agent state is "thinking" (e.g. during research tool).
+    # Builtins match the official example; pipeline may not set thinking during tool execution.
+    background_audio = BackgroundAudioPlayer(
+        thinking_sound=[
+            AudioConfig(BuiltinAudioClip.HOLD_MUSIC, volume=0.6),
+        ],
+        ambient_sound=[
+            AudioConfig(BuiltinAudioClip.OFFICE_AMBIENCE, volume=0.9),
+        ],
+    )
+    await background_audio.start(room=ctx.room, agent_session=session)
+
 
 if __name__ == "__main__":
     logging.basicConfig(
         level=os.getenv("LOG_LEVEL"),
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
+    # Reduce Silero VAD "inference is slower than realtime" log noise (still logs errors).
+    logging.getLogger("livekit.plugins.silero").setLevel(logging.ERROR)
     agents.cli.run_app(server)

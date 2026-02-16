@@ -16,6 +16,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 
 dependencies = [
+    "httpx>=0.28.1",
     "livekit-agents[silero,turn-detector,cartesia]>=1.4.1",
     "livekit-plugins-noise-cancellation>=0.2.5",
     "pyright>=1.1.408",
