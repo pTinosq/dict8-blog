@@ -55,8 +55,10 @@ async def my_agent(ctx: agents.JobContext):
     # Builtins match the official example; pipeline may not set thinking during tool execution.
     background_audio = BackgroundAudioPlayer(
         thinking_sound=[
-            AudioConfig(BuiltinAudioClip.KEYBOARD_TYPING, volume=0.8),
-            AudioConfig(BuiltinAudioClip.KEYBOARD_TYPING2, volume=0.7),
+            AudioConfig(BuiltinAudioClip.HOLD_MUSIC, volume=0.6),
+        ],
+        ambient_sound=[
+            AudioConfig(BuiltinAudioClip.OFFICE_AMBIENCE, volume=0.9),
         ],
     )
     await background_audio.start(room=ctx.room, agent_session=session)

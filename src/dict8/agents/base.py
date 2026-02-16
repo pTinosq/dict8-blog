@@ -22,6 +22,14 @@ TRANSFER_MESSAGES = [
     "Give me just a second. I'm transferring you to our {name}.",
 ]
 
+RESEARCH_INTRO_PHRASES = [
+    "I googled it and ",
+    "I searched it up and ",
+    "I looked it up and ",
+    "I checked and ",
+    "I ran a quick search and ",
+]
+
 
 @function_tool()
 async def create_new_project(slug: str, name: str, description: str) -> str:
@@ -99,10 +107,13 @@ async def save_blog_content(content: str) -> str:
 
 @function_tool()
 async def research(context: RunContext, query: str) -> str:
-    """Look up factual information on the web. Use when the author asks a fact question (e.g. who, when, what). Plays hold music while searching.
-    When you receive the result, respond naturally to the author: e.g. 'So I spoke to my researcher and it seems like [result]' or 'According to what I found, [result].' Do not just read the raw result; acknowledge that you looked it up and then share the answer.
-    """
-    return await run_research(query)
+    """Look up factual information on the web. You MUST call this tool whenever the author asks a fact question (who, when, what, current events, names, dates) or asks you to research/look something up. Never answer factual questions from memory—always call this tool first. When you tell the author the result, you MUST say the exact opening phrase at the start of this tool's return (e.g. 'I googled it and', 'I looked it up and') before the finding. Never omit that phrase."""
+    raw = await run_research(query)
+    if not raw or raw.startswith("Error"):
+        return raw
+    intro = random.choice(RESEARCH_INTRO_PHRASES)
+    start = f"{raw[0].lower()}{raw[1:]}" if raw[0].isupper() else raw
+    return f"{intro}{start}"
 
 
 class BasePhaseAgent(ABC, Agent):
