@@ -7,6 +7,7 @@ from livekit.agents.llm import ChatContext
 from livekit.plugins import cartesia
 
 from dict8 import projects
+from dict8.agents.research_agent import run_research
 from dict8.utils import load_prompt
 
 BASE_INSTRUCTIONS = load_prompt("sys.md")
@@ -96,6 +97,14 @@ async def save_blog_content(content: str) -> str:
     return "Blog content saved."
 
 
+@function_tool()
+async def research(context: RunContext, query: str) -> str:
+    """Look up factual information on the web. Use when the author asks a fact question (e.g. who, when, what). Plays hold music while searching.
+    When you receive the result, respond naturally to the author: e.g. 'So I spoke to my researcher and it seems like [result]' or 'According to what I found, [result].' Do not just read the raw result; acknowledge that you looked it up and then share the answer.
+    """
+    return await run_research(query)
+
+
 class BasePhaseAgent(ABC, Agent):
     phase: int
     name: str
@@ -129,6 +138,7 @@ class BasePhaseAgent(ABC, Agent):
                 get_blog_content,
                 save_project_context,
                 save_blog_content,
+                research,
             ],
             chat_ctx=chat_ctx,
             tts=tts,
