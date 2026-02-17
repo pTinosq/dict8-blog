@@ -17,8 +17,11 @@ lint:
 	uv run ruff format
 	uv run pyright
 
-dev:
+dev-agent:
 	uv run --env-file=.env python -m dict8.main dev
 
-dev-console:
+dev-agent-console:
 	uv run --env-file=.env python -m dict8.main console
+
+dev-worker:
+	uv run --env-file=.env python -m dict8.worker

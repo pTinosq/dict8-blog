@@ -13,12 +13,12 @@ from livekit.agents import (
     BuiltinAudioClip,
     room_io,
 )
-from livekit.plugins import cartesia, noise_cancellation, silero
+from livekit.plugins import cartesia, deepgram, noise_cancellation, openai, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
-from dict8.agents import ContextGatheringAgent
+from dict8.agents import Phase1Agent
 from dict8.agents.base import BasePhaseAgent, TTS_SPEED
-from dict8.projects import PHASES, clear_active_project, get_active_project
+from dict8.projects import clear_active_project
 
 
 # Raise memory warning threshold (default 500 MB is low for STT/LLM/TTS + research).
@@ -29,8 +29,8 @@ server = AgentServer(job_memory_warn_mb=2000)
 @server.rtc_session(agent_name="dict8-agent")
 async def my_agent(ctx: agents.JobContext):
     session = AgentSession(
-        llm="openai/gpt-4.1-mini",
-        stt="deepgram/nova-3:multi",
+        llm=openai.LLM(model="gpt-4.1-mini"),
+        stt=deepgram.STT(model="nova-3", language="multi"),
         tts=cartesia.TTS(
             model="sonic-3",
             voice="9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
@@ -40,11 +40,11 @@ async def my_agent(ctx: agents.JobContext):
         turn_detection=MultilingualModel(),
     )
 
-    session_transcript_dir = tempfile.mkdtemp(prefix="dict8-transcript-")
-    merged_to_project: list[bool] = [False]
+    transcript_dir = Path(tempfile.mkdtemp(prefix="dict8-transcript-"))
 
     @session.on("conversation_item_added")
     def on_conversation_item(ev):
+        """Append every conversation turn to the current phase's transcript."""
         try:
             agent = session.current_agent
             if not isinstance(agent, BasePhaseAgent):
@@ -54,30 +54,9 @@ async def my_agent(ctx: agents.JobContext):
             text = (ev.item.text_content or "").strip()
             if not text:
                 return
-            proj = get_active_project()
             prefix = "Agent: " if ev.item.role == "assistant" else "Human: "
             line = prefix + text + "\n"
-
-            if proj is None:
-                path = Path(session_transcript_dir) / f"phase{agent.phase}.md"
-                path.parent.mkdir(parents=True, exist_ok=True)
-                with open(path, "a", encoding="utf-8") as f:
-                    f.write(line)
-                return
-
-            if not merged_to_project[0]:
-                for phase in PHASES:
-                    temp_path = Path(session_transcript_dir) / f"phase{phase}.md"
-                    if temp_path.exists():
-                        content = temp_path.read_text(encoding="utf-8")
-                        proj_path = proj.root_dir / f"phase{phase}.md"
-                        proj_path.parent.mkdir(parents=True, exist_ok=True)
-                        with open(proj_path, "a", encoding="utf-8") as f:
-                            f.write(content)
-                merged_to_project[0] = True
-
-            path = proj.root_dir / f"phase{agent.phase}.md"
-            path.parent.mkdir(parents=True, exist_ok=True)
+            path = transcript_dir / f"phase{agent.phase}.md"
             with open(path, "a", encoding="utf-8") as f:
                 f.write(line)
         except (RuntimeError, OSError):
@@ -87,13 +66,13 @@ async def my_agent(ctx: agents.JobContext):
     def on_close(_ev):
         clear_active_project()
         try:
-            shutil.rmtree(session_transcript_dir, ignore_errors=True)
+            shutil.rmtree(str(transcript_dir), ignore_errors=True)
         except OSError:
             pass
 
     await session.start(
         room=ctx.room,
-        agent=ContextGatheringAgent(),
+        agent=Phase1Agent(transcript_dir=transcript_dir),
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
                 noise_cancellation=lambda params: (

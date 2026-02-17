@@ -1,17 +1,11 @@
-"""
-Text-only research agent for LiveKit. No STT/TTS. Called by the voice agent's
-research tool. Uses Tavily for web search and a direct LLM+tools loop.
-"""
-
-from __future__ import annotations
-
 import asyncio
 import os
 from typing import Any
 
 import httpx
-from livekit.agents import NOT_GIVEN, Agent, function_tool, inference
+from livekit.agents import NOT_GIVEN, Agent, function_tool
 from livekit.agents import llm as llm_module
+from livekit.plugins import openai
 from livekit.agents.llm import ChatContext, ToolContext, execute_function_call
 
 TAVILY_SEARCH_URL = "https://api.tavily.com/search"
@@ -78,7 +72,7 @@ RESEARCH_AGENT = Agent(
     tools=[web_search],
     stt=None,
     tts=None,
-    llm=inference.LLM.from_model_string("openai/gpt-4.1-mini"),
+    llm=openai.LLM(model="gpt-4.1-mini"),
 )
 
 

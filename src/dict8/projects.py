@@ -1,10 +1,16 @@
 import json
 import os
 import uuid
+from enum import StrEnum
 from pathlib import Path
 from typing import NamedTuple
 
-PHASES = (1, 2, 3, 4)
+
+class ProjectStatus(StrEnum):
+    IN_PROGRESS = "in_progress"
+    READY_FOR_WRITING = "ready_for_writing"
+    WRITING = "writing"
+    COMPLETE = "complete"
 
 
 class ProjectInfo(NamedTuple):
@@ -12,6 +18,7 @@ class ProjectInfo(NamedTuple):
     slug: str
     name: str
     description: str
+    status: ProjectStatus
 
 
 class ProjectStore:
@@ -42,6 +49,7 @@ class ProjectStore:
                 slug=p["slug"],
                 name=p["name"],
                 description=p["description"],
+                status=ProjectStatus(p.get("status", ProjectStatus.IN_PROGRESS)),
             )
             for p in data["projects"]
         ]
@@ -58,6 +66,7 @@ class ProjectStore:
                 "slug": slug_lower,
                 "name": name.strip(),
                 "description": description.strip(),
+                "status": ProjectStatus.IN_PROGRESS,
             }
         )
         self.save_index(data)
@@ -71,6 +80,18 @@ class ProjectStore:
             if p["id"] == project_id:
                 return Project(self, p["id"], p["slug"], p["name"], p["description"])
         return None
+
+    def set_project_status(self, project_id: str, status: ProjectStatus) -> None:
+        data = self.load_index()
+        for p in data["projects"]:
+            if p["id"] == project_id:
+                p["status"] = status
+                self.save_index(data)
+                return
+        raise ValueError(f"Unknown project id: {project_id}")
+
+    def list_projects_by_status(self, status: ProjectStatus) -> list[ProjectInfo]:
+        return [p for p in self.list_projects() if p.status == status]
 
     def get_active_project(self) -> "Project | None":
         data = self.load_index()
@@ -152,3 +173,11 @@ def create_project(slug: str, name: str, description: str) -> Project:
 
 def get_project(project_id: str) -> Project | None:
     return default_store.get_project(project_id)
+
+
+def set_project_status(project_id: str, status: ProjectStatus) -> None:
+    default_store.set_project_status(project_id, status)
+
+
+def list_projects_by_status(status: ProjectStatus) -> list[ProjectInfo]:
+    return default_store.list_projects_by_status(status)

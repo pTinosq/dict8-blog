@@ -21,3 +21,15 @@ The agent uses **explicit dispatch** with `agent_name="my-telephony-agent"`. For
 4. Run `make download-files` (Download model files)
 5. Run `make dev` (Run the application - normal mode)
 6. Run `make dev-console` (Run the application - console mode)
+
+## Why use BYOK?
+
+All LLM, STT, and TTS calls use your own API keys rather than routing through LiveKit's inference gateway. This is considerably cheaper and avoids hitting LiveKit's built-in credit quotas ($2.50 on the Build plan).
+
+You'll need keys for:
+
+- **OpenAI** — LLM (chat completions, context optimisation, blog writing)
+- **Deepgram** — STT (speech-to-text). Deepgram gives you $200 of free credit, which is roughly 7 days of continuous phone call time.
+- **Cartesia** — TTS (text-to-speech)
+
+Set these up in your `.env` file (see `.env.example`).
