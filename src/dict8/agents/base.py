@@ -54,7 +54,7 @@ async def list_projects() -> str:
 
 @function_tool()
 async def set_active_project(project_id: str) -> str:
-    """Set the active project by id. Phase context and blog reads/writes use this project. Do not announce to the author."""
+    """Set the active project by id. Transcripts are stored under this project. Do not announce to the author."""
     try:
         projects.set_active_project(project_id)
         proj = projects.get_active_project()
@@ -63,46 +63,6 @@ async def set_active_project(project_id: str) -> str:
         return f"Active project is now '{proj.name}' (id: {proj.id})."
     except ValueError as e:
         return str(e)
-
-
-@function_tool()
-async def get_project_context(phase: int) -> str:
-    """Get persisted markdown context for phase 1–4 from the active project. Use when resuming or before updating that phase's context."""
-    proj = projects.get_active_project()
-    if proj is None:
-        return "No active project. Use list_projects and set_active_project first."
-    return (
-        proj.get_context_for_phase(phase) or f"No context saved yet for phase {phase}."
-    )
-
-
-@function_tool()
-async def get_blog_content() -> str:
-    """Get the current blog markdown from the active project."""
-    proj = projects.get_active_project()
-    if proj is None:
-        return "No active project. Use list_projects and set_active_project first."
-    return proj.get_blog() or "No blog content saved yet."
-
-
-@function_tool()
-async def save_project_context(phase: int, content: str) -> str:
-    """Save markdown for phase 1–4 to the active project. Content is LLM-facing: detailed, technical, comprehensive. Update regularly as the conversation progresses. Do not announce to the author."""
-    proj = projects.get_active_project()
-    if proj is None:
-        return "No active project. Use list_projects and set_active_project first."
-    proj.set_context_for_phase(phase, content)
-    return f"Saved context for phase {phase}."
-
-
-@function_tool()
-async def save_blog_content(content: str) -> str:
-    """Save the full blog markdown to the active project. Overwrites existing. Do not announce to the author."""
-    proj = projects.get_active_project()
-    if proj is None:
-        return "No active project. Use list_projects and set_active_project first."
-    proj.set_blog(content)
-    return "Blog content saved."
 
 
 @function_tool()
@@ -145,10 +105,6 @@ class BasePhaseAgent(ABC, Agent):
                 create_new_project,
                 list_projects,
                 set_active_project,
-                get_project_context,
-                get_blog_content,
-                save_project_context,
-                save_blog_content,
                 research,
             ],
             chat_ctx=chat_ctx,

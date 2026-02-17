@@ -86,6 +86,11 @@ class ProjectStore:
         data["active_id"] = project_id
         self.save_index(data)
 
+    def clear_active_project(self) -> None:
+        data = self.load_index()
+        data["active_id"] = None
+        self.save_index(data)
+
 
 class Project:
     def __init__(
@@ -110,8 +115,6 @@ class Project:
                 "slug": self.slug,
                 "name": self.name,
                 "description": self.description,
-                "phase_files": {str(p): f"phase_{p}.md" for p in PHASES},
-                "blog_file": "blog.md",
             }
         return json.loads(self.manifest_path.read_text())
 
@@ -121,45 +124,7 @@ class Project:
 
     def ensure_manifest(self) -> None:
         self.save_manifest(self.manifest())
-        self.ensure_phase_and_blog_files()
-
-    def ensure_phase_and_blog_files(self) -> None:
         self.root_dir.mkdir(parents=True, exist_ok=True)
-        for phase in PHASES:
-            p = self.path_for(str(phase))
-            if not p.exists():
-                p.write_text("")
-        blog_path = self.path_for("blog")
-        if not blog_path.exists():
-            blog_path.write_text("")
-
-    def path_for(self, key: str) -> Path:
-        manifest = self.manifest()
-        if key == "blog":
-            return self.root_dir / manifest["blog_file"]
-        return self.root_dir / manifest["phase_files"][str(key)]
-
-    def get_context_for_phase(self, phase: int) -> str:
-        if phase not in PHASES:
-            return ""
-        path = self.path_for(str(phase))
-        return path.read_text() if path.exists() else ""
-
-    def set_context_for_phase(self, phase: int, content: str) -> None:
-        if phase not in PHASES:
-            return
-        path = self.path_for(str(phase))
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content)
-
-    def get_blog(self) -> str:
-        path = self.path_for("blog")
-        return path.read_text() if path.exists() else ""
-
-    def set_blog(self, content: str) -> None:
-        path = self.path_for("blog")
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content)
 
 
 default_store = ProjectStore()
@@ -171,6 +136,10 @@ def get_active_project() -> Project | None:
 
 def set_active_project(project_id: str) -> None:
     default_store.set_active_project(project_id)
+
+
+def clear_active_project() -> None:
+    default_store.clear_active_project()
 
 
 def list_projects() -> list[ProjectInfo]:
