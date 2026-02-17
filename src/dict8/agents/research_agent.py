@@ -72,7 +72,7 @@ RESEARCH_AGENT = Agent(
     tools=[web_search],
     stt=None,
     tts=None,
-    llm=openai.LLM(model="gpt-4.1-mini"),
+    llm=openai.LLM(model="gpt-5-nano"),
 )
 
 

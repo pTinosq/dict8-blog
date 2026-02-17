@@ -29,7 +29,7 @@ server = AgentServer(job_memory_warn_mb=2000)
 @server.rtc_session(agent_name="dict8-agent")
 async def my_agent(ctx: agents.JobContext):
     session = AgentSession(
-        llm=openai.LLM(model="gpt-4.1-mini"),
+        llm=openai.LLM(model="gpt-5-nano"),
         stt=deepgram.STT(model="nova-3", language="multi"),
         tts=cartesia.TTS(
             model="sonic-3",

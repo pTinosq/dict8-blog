@@ -6,13 +6,13 @@ markdown file. Called between phases by the voice agent.
 import logging
 
 from openai import AsyncOpenAI
-
+from openai.types.shared_params import ChatModel
 from dict8.phases import PHASES
 from dict8.utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
-MODEL = "gpt-4.1-mini"
+MODEL: ChatModel = "gpt-5-nano"
 
 BASE_INSTRUCTIONS = load_prompt("context_optimizer.md")
 

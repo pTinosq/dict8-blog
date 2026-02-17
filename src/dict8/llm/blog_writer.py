@@ -8,12 +8,13 @@ from __future__ import annotations
 import logging
 
 from openai import AsyncOpenAI
+from openai.types.shared_params import ChatModel
 
 from dict8.utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
-MODEL = "gpt-4.1-mini"
+MODEL: ChatModel = "gpt-5-mini"
 
 BASE_INSTRUCTIONS = load_prompt("blog_writer.md")
 
