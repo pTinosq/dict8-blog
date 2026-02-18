@@ -95,7 +95,6 @@ async def run_style_profiler(corpus: list[str]) -> StyleProfileOutput:
             model=MODEL,
             input=messages,
             text_format=StyleProfileOutput,
-            max_output_tokens=2000,
         )
 
         output = response.output_parsed
