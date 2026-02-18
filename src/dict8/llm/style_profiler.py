@@ -1,12 +1,13 @@
 import logging
 from typing import Literal
 
+from openai.types.responses.response_input_param import ResponseInputParam
+from openai.types.responses.response_input_item_param import ResponseInputItemParam
 from openai.types.shared_params import ChatModel
 
 from dict8.llm.client import get_openai_client
-from dict8.phases import PHASES
 from dict8.utils import load_prompt
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -52,4 +53,73 @@ class AuthorManifest(BaseModel):
 
     axes: StyleAxes
 
-def run_style_profiler(corpus: list[str]) -> AuthorManifest:
+
+class StyleProfileOutput(BaseModel):
+    manifest: AuthorManifest
+    style_markdown: str
+
+
+async def run_style_profiler(corpus: list[str]) -> StyleProfileOutput:
+    """
+    Runs the Style Distillation Pipeline for a single author.
+
+    Args:
+        corpus: List of raw markdown / html strings for a single author,
+                including author.md as the first element if available.
+
+    Returns:
+        StyleProfileOutput (validated via Pydantic structured output)
+    """
+
+    if not corpus:
+        raise ValueError("Corpus is empty. Cannot run style profiler.")
+
+    client = get_openai_client()
+
+    # Combine corpus into a single analysis payload
+    # You may want to truncate or chunk upstream if extremely large.
+    joined_corpus = "\n\n--- DOCUMENT BREAK ---\n\n".join(corpus)
+
+    system_msg: ResponseInputItemParam = {
+        "role": "system",
+        "content": BASE_INSTRUCTIONS,
+    }
+    user_msg: ResponseInputItemParam = {
+        "role": "user",
+        "content": f"# Corpus\n\n{joined_corpus}",
+    }
+    messages: ResponseInputParam = [system_msg, user_msg]
+
+    try:
+        response = await client.responses.parse(
+            model=MODEL,
+            input=messages,
+            text_format=StyleProfileOutput,
+            max_output_tokens=2000,
+        )
+
+        output = response.output_parsed
+        if output is None:
+            raise ValueError(
+                "Model returned no parsed output (possible refusal or empty response)."
+            )
+
+        manifest = output.manifest
+        style_markdown = output.style_markdown
+
+        logger.info(
+            "Style profiling complete",
+        )
+
+        return StyleProfileOutput(
+            manifest=manifest,
+            style_markdown=style_markdown,
+        )
+
+    except ValidationError as e:
+        logger.exception("Structured output validation failed.", exc_info=e)
+        raise
+
+    except Exception as e:
+        logger.exception("Style profiling failed.", exc_info=e)
+        raise

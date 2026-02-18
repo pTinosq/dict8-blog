@@ -59,19 +59,21 @@ These represent a sample of their writing style.
 
 # Output Requirements
 
-Return ONLY valid structured output matching the AuthorManifest schema.
+You must produce:
 
-The "summary" field must:
+1. A structured AuthorManifest object.
+2. A detailed style_markdown document.
 
-- Be 2–4 sentences
-- Describe the author's stylistic identity abstractly
-- Not reference specific content or works
+The style_markdown document must:
 
-Tone tags must:
+- Expand on the manifest fields.
+- Provide clear stylistic constraints.
+- Include sections such as Tone, Structure, Voice, Things To Avoid, and Structural Blueprint.
+- Never quote from the corpus.
+- Never summarise topics.
+- Never include example sentences.
 
-- Be broad
-- Be reusable across many authors
-- Avoid overly specific phrasing
+The style_markdown should be optimised for a writing LLM to follow.
 
 Axes must:
 
