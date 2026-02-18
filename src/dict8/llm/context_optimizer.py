@@ -12,11 +12,11 @@ from dict8.utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
-MODEL: ChatModel = "gpt-5-nano"
 
 BASE_INSTRUCTIONS = load_prompt("context_optimizer.md")
 
-_client = AsyncOpenAI()
+CLIENT = AsyncOpenAI()
+MODEL: ChatModel = "gpt-5-nano"
 
 
 async def optimize_context(phase: int, transcript: str) -> str:
@@ -31,7 +31,7 @@ async def optimize_context(phase: int, transcript: str) -> str:
     )
 
     try:
-        response = await _client.chat.completions.create(
+        response = await CLIENT.chat.completions.create(
             model=MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},

@@ -14,11 +14,10 @@ from dict8.utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
-MODEL: ChatModel = "gpt-5-mini"
-
 BASE_INSTRUCTIONS = load_prompt("blog_writer.md")
 
-_client = AsyncOpenAI()
+CLIENT = AsyncOpenAI()
+MODEL: ChatModel = "gpt-5-mini"
 
 
 async def write_blog(ctx_files: dict[int, str]) -> str:
@@ -34,7 +33,7 @@ async def write_blog(ctx_files: dict[int, str]) -> str:
     user_content = "\n".join(parts)
 
     try:
-        response = await _client.chat.completions.create(
+        response = await CLIENT.chat.completions.create(
             model=MODEL,
             messages=[
                 {"role": "system", "content": BASE_INSTRUCTIONS},
@@ -44,6 +43,7 @@ async def write_blog(ctx_files: dict[int, str]) -> str:
         text = (response.choices[0].message.content or "").strip()
         if not text:
             return "Error: Blog writer returned empty output."
+
         return text
     except Exception as e:
         logger.exception("Blog writing failed")
