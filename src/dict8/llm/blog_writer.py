@@ -1,10 +1,3 @@
-"""
-Produces the final blog post markdown from the optimised phase context files.
-Called by the worker process, never during a voice session.
-"""
-
-from __future__ import annotations
-
 import logging
 
 from openai import AsyncOpenAI

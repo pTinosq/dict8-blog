@@ -1,8 +1,3 @@
-"""
-Converts a raw voice transcript into a detailed, LLM-optimised context
-markdown file. Called between phases by the voice agent.
-"""
-
 import logging
 
 from openai import AsyncOpenAI

@@ -1,17 +1,3 @@
-"""
-Blog writer worker — a standalone process that polls the project store for
-projects marked ``ready_for_writing``, runs the blog writer, and saves the
-output.
-
-Run separately from the LiveKit voice agent::
-
-    python -m dict8.worker
-
-No LiveKit dependency — just the OpenAI SDK and the project store.
-"""
-
-from __future__ import annotations
-
 import asyncio
 import logging
 
