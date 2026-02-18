@@ -11,18 +11,18 @@ ALLOWED_FILE_EXTENSIONS = [".md", ".html", ".txt"]
 
 
 def generate_corpus(author_dir: Path) -> list[str]:
-    """Generate a corpus of markdown files for an author"""
+    """Generate a corpus for an author from author.md and writings/*"""
     corpus = []
-    # First append the author.md file
     author_md_path = author_dir / "author.md"
     if author_md_path.exists():
         corpus.append(author_md_path.read_text())
 
-    for file in author_dir.glob(f"*{ALLOWED_FILE_EXTENSIONS}"):
-        if file.name == "author.md" or file.name == "style.md":
-            continue
-
-        corpus.append(file.read_text())
+    writings_dir = author_dir / "writings"
+    if writings_dir.is_dir():
+        for file in sorted(writings_dir.iterdir()):
+            if not file.is_file() or file.suffix not in ALLOWED_FILE_EXTENSIONS:
+                continue
+            corpus.append(file.read_text())
     return corpus
 
 
@@ -40,6 +40,9 @@ async def main():
             output = await run_style_profiler(corpus)
             manifest = output.manifest
             style_markdown = output.style_markdown
+
+            # TODO: Save the manifest as JSON
+            # TODO: Save the style markdown as markdown in the author's directory
 
             logger.info(f"Generated style profile for {author_name}")
             break
