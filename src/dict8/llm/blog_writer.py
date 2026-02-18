@@ -1,15 +1,14 @@
 import logging
 
-from openai import AsyncOpenAI
 from openai.types.shared_params import ChatModel
 
+from dict8.llm.client import get_openai_client
 from dict8.utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
 BASE_INSTRUCTIONS = load_prompt("blog_writer.md")
 
-CLIENT = AsyncOpenAI()
 MODEL: ChatModel = "gpt-5-mini"
 
 
@@ -26,7 +25,8 @@ async def write_blog(ctx_files: dict[int, str]) -> str:
     user_content = "\n".join(parts)
 
     try:
-        response = await CLIENT.chat.completions.create(
+        client = get_openai_client()
+        response = await client.chat.completions.create(
             model=MODEL,
             messages=[
                 {"role": "system", "content": BASE_INSTRUCTIONS},

@@ -20,6 +20,7 @@ dependencies = [
     "livekit-agents[silero,turn-detector,cartesia,deepgram,openai]>=1.4.2",
     "livekit-plugins-noise-cancellation>=0.2.5",
     "openai>=2.20.0",
+    "pydantic>=2.12.5",
     "pyright>=1.1.408",
     "python-dotenv>=1.2.1",
     "ruff>=0.15.0",

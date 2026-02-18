@@ -1,7 +1,8 @@
 import logging
 
-from openai import AsyncOpenAI
 from openai.types.shared_params import ChatModel
+
+from dict8.llm.client import get_openai_client
 from dict8.phases import PHASES
 from dict8.utils import load_prompt
 
@@ -10,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 BASE_INSTRUCTIONS = load_prompt("context_optimizer.md")
 
-CLIENT = AsyncOpenAI()
 MODEL: ChatModel = "gpt-5-nano"
 
 
@@ -26,7 +26,9 @@ async def optimize_context(phase: int, transcript: str) -> str:
     )
 
     try:
-        response = await CLIENT.chat.completions.create(
+        client = get_openai_client()
+
+        response = await client.chat.completions.create(
             model=MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
