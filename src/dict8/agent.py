@@ -18,7 +18,7 @@ from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 from dict8.agents import Phase1Agent
 from dict8.agents.base import BasePhaseAgent, TTS_SPEED
-from dict8.projects import clear_active_project
+from dict8.projects import clear_active_project, get_active_project, get_resume_phase
 
 
 # Raise memory warning threshold (default 500 MB is low for STT/LLM/TTS + research).
@@ -70,9 +70,15 @@ async def my_agent(ctx: agents.JobContext):
         except OSError:
             pass
 
+    # If there is an active project with phase context already saved, start at that phase.
+    proj = get_active_project()
+    resume = get_resume_phase(proj)
+    agent_class = BasePhaseAgent._REGISTRY.get(resume) or Phase1Agent
+    initial_agent = agent_class(transcript_dir=transcript_dir)
+
     await session.start(
         room=ctx.room,
-        agent=Phase1Agent(transcript_dir=transcript_dir),
+        agent=initial_agent,
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
                 noise_cancellation=lambda params: (

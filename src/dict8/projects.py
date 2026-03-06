@@ -5,6 +5,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import NamedTuple
 
+from dict8.phases import ALL_PHASE_NUMBERS
+
 
 class ProjectStatus(StrEnum):
     IN_PROGRESS = "in_progress"
@@ -166,6 +168,31 @@ class Project:
         self.save_manifest(self.manifest())
         self.root_dir.mkdir(parents=True, exist_ok=True)
 
+    def resume_phase(self) -> int:
+        """Infer which phase to run next from existing ``phase{N}ctx.md`` files.
+
+        Uses the dynamic phase list from ``ALL_PHASE_NUMBERS`` so it stays in sync
+        if phases are added or removed.
+
+        Logic:
+        - Look for completed phases in descending order (except the final phase).
+        - If a ``phase{N}ctx.md`` file exists, resume at the *next* phase after N.
+        - If no context files exist, start at the first phase.
+        """
+        phases = sorted(ALL_PHASE_NUMBERS)
+        if not phases:
+            return 1
+
+        # We never auto-advance past the final defined phase, so only look at
+        # phases that have a successor.
+        for idx in range(len(phases) - 2, -1, -1):
+            n = phases[idx]
+            if (self.root_dir / f"phase{n}ctx.md").exists():
+                return phases[idx + 1]
+
+        # Default: start at the first phase.
+        return phases[0]
+
 
 default_store = ProjectStore()
 
@@ -200,6 +227,13 @@ def set_project_status(project_id: str, status: ProjectStatus) -> None:
 
 def list_projects_by_status(status: ProjectStatus) -> list[ProjectInfo]:
     return default_store.list_projects_by_status(status)
+
+
+def get_resume_phase(project: "Project | None") -> int:
+    """Return the phase to resume at for this project (1–4), or 1 if no project."""
+    if project is None:
+        return 1
+    return project.resume_phase()
 
 
 def update_project_metadata(
