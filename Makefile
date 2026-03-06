@@ -17,6 +17,10 @@ lint:
 	uv run ruff format
 	uv run pyright
 
+test:
+	uv sync --extra test
+	uv run pytest -v
+
 dev-agent:
 	uv run --env-file=.env python -m dict8.agent dev
 
@@ -28,3 +32,4 @@ dev-worker:
 
 dev-build-styles:
 	uv run --env-file=.env python -m dict8.build_styles
+

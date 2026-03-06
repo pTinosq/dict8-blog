@@ -20,6 +20,16 @@ from dict8.agents import Phase1Agent
 from dict8.agents.base import BasePhaseAgent, TTS_SPEED
 from dict8.projects import clear_active_project, get_active_project, get_resume_phase
 
+SESSION_LLM_MODEL = "gpt-5-nano"
+
+
+def create_initial_agent(
+    transcript_dir: Path, *, resume_phase: int = 1
+) -> BasePhaseAgent:
+    """Create the agent used to start a session. Used by production and tests."""
+    agent_class = BasePhaseAgent._REGISTRY.get(resume_phase) or Phase1Agent
+    return agent_class(transcript_dir=transcript_dir)
+
 
 # Raise memory warning threshold (default 500 MB is low for STT/LLM/TTS + research).
 # Silero VAD "inference is slower than realtime" is demoted so it doesn't flood logs.
@@ -29,7 +39,7 @@ server = AgentServer(job_memory_warn_mb=2000)
 @server.rtc_session(agent_name="dict8-agent")
 async def my_agent(ctx: agents.JobContext):
     session = AgentSession(
-        llm=openai.LLM(model="gpt-5-nano"),
+        llm=openai.LLM(model=SESSION_LLM_MODEL),
         stt=deepgram.STT(model="nova-3", language="multi"),
         tts=cartesia.TTS(
             model="sonic-3",
@@ -72,9 +82,8 @@ async def my_agent(ctx: agents.JobContext):
 
     # If there is an active project with phase context already saved, start at that phase.
     proj = get_active_project()
-    resume = get_resume_phase(proj)
-    agent_class = BasePhaseAgent._REGISTRY.get(resume) or Phase1Agent
-    initial_agent = agent_class(transcript_dir=transcript_dir)
+    resume = get_resume_phase(proj) if proj else 1
+    initial_agent = create_initial_agent(transcript_dir, resume_phase=resume)
 
     await session.start(
         room=ctx.room,

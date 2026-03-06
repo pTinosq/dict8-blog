@@ -26,6 +26,16 @@ dependencies = [
     "ruff>=0.15.0",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
 [tool.ruff]
 include = ["src/**/*.py"]
 line-length = 100
@@ -45,7 +55,7 @@ known-local-folder = ["src", "dict8"]
 
 [tool.pyright]
 venvPath = "."
-include = ["src"]
+include = ["src", "tests"]
 exclude = ["out", "venv"]
 pythonVersion = "3.12"
 typeCheckingMode = "standard"
