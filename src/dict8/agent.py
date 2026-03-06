@@ -18,7 +18,7 @@ from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 from dict8.agents import Phase1Agent
 from dict8.agents.base import BasePhaseAgent, TTS_SPEED
-from dict8.projects import clear_active_project, get_active_project, get_resume_phase
+from dict8.projects import clear_active_project
 
 SESSION_LLM_MODEL = "gpt-5-nano"
 
@@ -80,10 +80,8 @@ async def my_agent(ctx: agents.JobContext):
         except OSError:
             pass
 
-    # If there is an active project with phase context already saved, start at that phase.
-    proj = get_active_project()
-    resume = get_resume_phase(proj) if proj else 1
-    initial_agent = create_initial_agent(transcript_dir, resume_phase=resume)
+    # Always start from phase 1 for a fresh post in each new session.
+    initial_agent = create_initial_agent(transcript_dir, resume_phase=1)
 
     await session.start(
         room=ctx.room,
