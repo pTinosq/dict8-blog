@@ -39,8 +39,27 @@ RESEARCH_INTRO_PHRASES = [
 
 @function_tool()
 async def create_new_project(slug: str, name: str, description: str) -> str:
-    """Create a new blog project and set it active. Slug: URL-friendly (e.g. my-blog-topic). Name: display title. Description: brief, disambiguating summary for model context (e.g. 'Navy SEALs training' vs 'Pet seal care'). Do not announce to the author."""
+    """Create a new blog project when none is active, or update the active project's metadata if one already exists.
+
+    Slug: URL-friendly (e.g. my-blog-topic). Name: display title. Description: brief, disambiguating summary for model context (e.g. 'Navy SEALs training' vs 'Pet seal care').
+    When a project is already active, treat this as \"saving\" or refining that project's name/description instead of creating a new one.
+    Do not announce to the author.
+    """
     try:
+        active = projects.get_active_project()
+        if active is not None:
+            # Update the existing active project instead of creating a new one.
+            projects.update_project_metadata(
+                active.id,
+                name=name,
+                description=description,
+            )
+            manifest = active.manifest()
+            manifest["name"] = name.strip()
+            manifest["description"] = description.strip()
+            active.save_manifest(manifest)
+            return f"Updated active project '{name.strip()}' (id: {active.id})."
+
         proj = projects.create_project(slug, name, description)
         projects.set_active_project(proj.id)
         return f"Created and active. Id: {proj.id}"

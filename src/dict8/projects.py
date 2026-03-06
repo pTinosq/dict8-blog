@@ -90,6 +90,25 @@ class ProjectStore:
                 return
         raise ValueError(f"Unknown project id: {project_id}")
 
+    def update_project_metadata(
+        self,
+        project_id: str,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> None:
+        """Update name/description for a project in the index."""
+        data = self.load_index()
+        for p in data["projects"]:
+            if p["id"] == project_id:
+                if name is not None:
+                    p["name"] = name.strip()
+                if description is not None:
+                    p["description"] = description.strip()
+                self.save_index(data)
+                return
+        raise ValueError(f"Unknown project id: {project_id}")
+
     def list_projects_by_status(self, status: ProjectStatus) -> list[ProjectInfo]:
         return [p for p in self.list_projects() if p.status == status]
 
@@ -181,3 +200,16 @@ def set_project_status(project_id: str, status: ProjectStatus) -> None:
 
 def list_projects_by_status(status: ProjectStatus) -> list[ProjectInfo]:
     return default_store.list_projects_by_status(status)
+
+
+def update_project_metadata(
+    project_id: str,
+    *,
+    name: str | None = None,
+    description: str | None = None,
+) -> None:
+    default_store.update_project_metadata(
+        project_id,
+        name=name,
+        description=description,
+    )
