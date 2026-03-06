@@ -16,6 +16,13 @@ class Phase4Agent(BasePhaseAgent):
     async def finalize_blog(self, context: RunContext) -> str:
         """Finalize the session. Call this when the author is happy and ready to wrap up. This saves the final context and queues the blog for writing. After calling this, end the call."""
 
+        # Say we're wrapping up before the slow work so the author knows to wait.
+        handle = context.session.say(
+            "I'm going to wrap up the blog now, just a moment.",
+            allow_interruptions=False,
+        )
+        await handle.wait_for_playout()
+
         # Optimise Phase 4 transcript.
         await self._run_context_optimization()
 

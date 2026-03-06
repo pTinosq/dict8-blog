@@ -69,13 +69,7 @@ async def create_new_project(slug: str, name: str, description: str) -> str:
 
 @function_tool()
 async def list_projects() -> str:
-    """List projects (id, name, slug, description).
-
-    If the author has already said what the project is about (topic, name, or description),
-    match that to one project from this list and call set_active_project with its id—do not
-    ask again "which one?". Only ask "which one?" if they have not indicated a choice or if
-    several projects could match. Never pick a project id at random; use their words to
-    identify the right one. Do not announce tool names to the author."""
+    """List projects (id, name, slug, description). Use the list to match the author's words to one project and call set_active_project with its id. Do not announce tool names to the author."""
     items = projects.list_projects()
     if not items:
         return "No projects yet. Use create_new_project to create one."
@@ -86,7 +80,9 @@ async def list_projects() -> str:
 @function_tool()
 async def set_active_project(project_id: str) -> str:
     """Set the active project by id. Transcripts are stored under this project.
-    If the return message says to hand off by calling go_to_phase(N), you MUST call go_to_phase(N) in your next action—saying you are transferring in speech without calling the tool does nothing. Do not announce to the author."""
+    If the suggested resume phase is different from your current phase, switch with go_to_phase(N) next.
+    Do not announce tool names or ids to the author.
+    """
     try:
         projects.set_active_project(project_id)
         proj = projects.get_active_project()
@@ -95,7 +91,11 @@ async def set_active_project(project_id: str) -> str:
         msg = f"Active project is now '{proj.name}' (id: {proj.id})."
         resume = projects.get_resume_phase(proj)
         if resume > 1:
-            msg += f" This project already has context for phases 1–{resume - 1}. Hand off to the next phase immediately by calling go_to_phase({resume})."
+            msg += (
+                f" This project already has context for phases 1–{resume - 1}. "
+                f"Recommended next phase is {resume}; if you are not already in that "
+                f"phase, call go_to_phase({resume}) next."
+            )
         return msg
     except ValueError as e:
         return str(e)
@@ -208,7 +208,10 @@ class BasePhaseAgent(ABC, Agent):
         if phase not in PHASES:
             return f"Invalid phase. Please choose from: {', '.join(str(n) for n in PHASES)}."
         if phase == self.phase:
-            return f"Already in phase {phase}."
+            return (
+                f"Already in phase {phase}. Do not call go_to_phase again; continue the "
+                "conversation in this phase."
+            )
 
         next_class = self._REGISTRY.get(phase)
         if next_class is None:
