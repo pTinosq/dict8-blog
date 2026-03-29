@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import shutil
@@ -16,19 +17,16 @@ from livekit.agents import (
 from livekit.plugins import cartesia, deepgram, noise_cancellation, openai, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
-from dict8.agents import Phase1Agent
-from dict8.agents.base import BasePhaseAgent, TTS_SPEED
+from dict8.agents import Dict8Agent
+from dict8.agents.base import TTS_SPEED
 from dict8.projects import clear_active_project
 
 SESSION_LLM_MODEL = "gpt-5-nano"
 
 
-def create_initial_agent(
-    transcript_dir: Path, *, resume_phase: int = 1
-) -> BasePhaseAgent:
+def create_initial_agent(transcript_dir: Path) -> Dict8Agent:
     """Create the agent used to start a session. Used by production and tests."""
-    agent_class = BasePhaseAgent._REGISTRY.get(resume_phase) or Phase1Agent
-    return agent_class(transcript_dir=transcript_dir)
+    return Dict8Agent(transcript_dir=transcript_dir)
 
 
 # Raise memory warning threshold (default 500 MB is low for STT/LLM/TTS + research).
@@ -51,13 +49,26 @@ async def my_agent(ctx: agents.JobContext):
     )
 
     transcript_dir = Path(tempfile.mkdtemp(prefix="dict8-transcript-"))
+    state: dict[str, asyncio.Task[None] | None] = {"refresh_task": None}
+    refresh_lock = asyncio.Lock()
+
+    async def refresh_artifacts_debounced() -> None:
+        await asyncio.sleep(2.0)
+        agent = session.current_agent
+        if not isinstance(agent, Dict8Agent):
+            return
+        try:
+            async with refresh_lock:
+                await agent.refresh_project_artifacts()
+        except Exception:
+            logging.getLogger(__name__).exception("Background artifact refresh failed")
 
     @session.on("conversation_item_added")
     def on_conversation_item(ev):
-        """Append every conversation turn to the current phase's transcript."""
+        """Append each turn and trigger debounced artifact regeneration."""
         try:
             agent = session.current_agent
-            if not isinstance(agent, BasePhaseAgent):
+            if not isinstance(agent, Dict8Agent):
                 return
             if ev.item.role == "system":
                 return
@@ -66,22 +77,28 @@ async def my_agent(ctx: agents.JobContext):
                 return
             prefix = "Agent: " if ev.item.role == "assistant" else "Human: "
             line = prefix + text + "\n"
-            path = transcript_dir / f"phase{agent.phase}.md"
+            path = transcript_dir / "call.md"
             with open(path, "a", encoding="utf-8") as f:
                 f.write(line)
+            refresh_task = state["refresh_task"]
+            if refresh_task and not refresh_task.done():
+                refresh_task.cancel()
+            state["refresh_task"] = asyncio.create_task(refresh_artifacts_debounced())
         except (RuntimeError, OSError):
             pass
 
     @session.on("close")
     def on_close(_ev):
+        refresh_task = state["refresh_task"]
+        if refresh_task and not refresh_task.done():
+            refresh_task.cancel()
         clear_active_project()
         try:
             shutil.rmtree(str(transcript_dir), ignore_errors=True)
         except OSError:
             pass
 
-    # Always start from phase 1 for a fresh post in each new session.
-    initial_agent = create_initial_agent(transcript_dir, resume_phase=1)
+    initial_agent = create_initial_agent(transcript_dir)
 
     await session.start(
         room=ctx.room,

@@ -1,6 +1,5 @@
 import logging
 import random
-from abc import ABC
 from pathlib import Path
 
 from livekit.agents import Agent, RunContext, function_tool
@@ -9,24 +8,17 @@ from livekit.agents.llm import ChatContext
 from livekit.plugins import cartesia
 
 from dict8 import projects
-from dict8.llm.context_optimizer import optimize_context
 from dict8.agents.research_agent import run_research
-from dict8.phases import PHASES
-from dict8.utils import build_agent_enter_instructions, load_prompt
+from dict8.llm.context_optimizer import optimize_artifact
+from dict8.utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
 BASE_INSTRUCTIONS = load_prompt("sys.md")
+GREETING = load_prompt("main_greeting.md")
 
 # Cartesia TTS speech speed (0.6–2.0). Lower = slower, more natural for conversation.
 TTS_SPEED = 0.93
-
-TRANSFER_MESSAGES = [
-    "Just a second please, I'm going to transfer you to our {name}.",
-    "One moment, I'll send you over to our {name}.",
-    "Hold on a sec, I'm connecting you with our {name}.",
-    "Give me just a second. I'm transferring you to our {name}.",
-]
 
 RESEARCH_INTRO_PHRASES = [
     "I googled it and ",
@@ -64,24 +56,13 @@ async def list_projects() -> str:
 
 @function_tool()
 async def set_active_project(project_id: str) -> str:
-    """Set the active project by id. Transcripts are stored under this project.
-    If the suggested resume phase is different from your current phase, switch with go_to_phase(N) next.
-    Do not announce tool names or ids to the author.
-    """
+    """Set the active project by id. Do not announce tool names or ids."""
     try:
         projects.set_active_project(project_id)
         proj = projects.get_active_project()
         if proj is None:
             return "No active project. Use list_projects and set_active_project first."
-        msg = f"Active project is now '{proj.name}' (id: {proj.id})."
-        resume = projects.get_resume_phase(proj)
-        if resume > 1:
-            msg += (
-                f" This project already has context for phases 1–{resume - 1}. "
-                f"Recommended next phase is {resume}; if you are not already in that "
-                f"phase, call go_to_phase({resume}) next."
-            )
-        return msg
+        return f"Active project is now '{proj.name}' (id: {proj.id})."
     except ValueError as e:
         return str(e)
 
@@ -97,36 +78,7 @@ async def research(context: RunContext, query: str) -> str:
     return f"{intro}{start}"
 
 
-class BasePhaseAgent(ABC, Agent):
-    """Base class for all phase agents.
-
-    Subclasses only need to set ``phase = N`` as a class attribute.
-    Everything else — voice, prompts, on_enter behaviour — is derived from
-    the central ``PHASES`` config and can be overridden when needed.
-    """
-
-    phase: int
-    _REGISTRY: dict[int, type["BasePhaseAgent"]] = {}
-
-    def __init_subclass__(cls, **kwargs: object) -> None:
-        super().__init_subclass__(**kwargs)
-        if hasattr(cls, "phase"):
-            BasePhaseAgent._REGISTRY[cls.phase] = cls
-
-    def phase_instruction(self) -> str:
-        return load_prompt(f"phase{self.phase}_base.md")
-
-    def voice(self) -> str:
-        return PHASES[self.phase].voice_id
-
-    async def on_enter(self) -> None:
-        info = PHASES[self.phase]
-        greeting = load_prompt(f"phase{self.phase}_greeting.md")
-        instructions = build_agent_enter_instructions(greeting, info.prior_phases)
-        await self.session.generate_reply(instructions=instructions)
-
-    # ------------------------------------------------------------------
-
+class Dict8Agent(Agent):
     def __init__(
         self,
         transcript_dir: Path,
@@ -135,85 +87,56 @@ class BasePhaseAgent(ABC, Agent):
         self.transcript_dir = transcript_dir
         tts = cartesia.TTS(
             model="sonic-3",
-            voice=self.voice(),
+            voice="5ee9feff-1265-424a-9d7f-8e4d431a12c7",
             speed=TTS_SPEED,
         )
         super().__init__(
-            instructions=f"{BASE_INSTRUCTIONS}\n\n{self.phase_instruction()}",
+            instructions=BASE_INSTRUCTIONS,
             tools=[
                 EndCallTool(),
                 create_new_project,
+                list_projects,
+                set_active_project,
                 research,
             ],
             chat_ctx=chat_ctx,
             tts=tts,
         )
 
-    async def _run_context_optimization(self) -> None:
-        """Read this phase's transcript and produce an optimised context file."""
-        transcript_path = self.transcript_dir / f"phase{self.phase}.md"
-        if not transcript_path.exists():
-            logger.warning(
-                "No transcript found at %s — skipping optimisation", transcript_path
-            )
-            return
+    async def on_enter(self) -> None:
+        await self.session.generate_reply(instructions=GREETING)
 
-        transcript = transcript_path.read_text(encoding="utf-8")
-        if not transcript.strip():
-            logger.warning(
-                "Transcript at %s is empty — skipping optimisation", transcript_path
-            )
-            return
-
+    async def refresh_project_artifacts(self) -> None:
+        """Generate v1 artifacts from the conversation transcript."""
         proj = projects.get_active_project()
         if proj is None:
-            logger.warning("No active project — cannot save context file")
+            logger.warning("No active project — cannot save notes/structure files")
             return
 
-        result = await optimize_context(self.phase, transcript)
-        if result.startswith("Error:"):
-            logger.error(
-                "Context optimisation failed for phase %d: %s", self.phase, result
-            )
+        transcript_path = self.transcript_dir / "call.md"
+        if not transcript_path.exists():
+            logger.warning("No transcript file found — skipping refresh")
+            return
+        transcript = transcript_path.read_text(encoding="utf-8").strip()
+        if not transcript:
+            logger.warning("No transcript content available — skipping refresh")
             return
 
-        ctx_path = proj.root_dir / f"phase{self.phase}ctx.md"
-        ctx_path.parent.mkdir(parents=True, exist_ok=True)
-        ctx_path.write_text(result, encoding="utf-8")
-        logger.info("Saved context file: %s", ctx_path)
+        notes = await optimize_artifact("notes", transcript)
+        if notes.startswith("Error:"):
+            logger.error("Notes generation failed: %s", notes)
+        else:
+            notes_path = proj.root_dir / "notes.md"
+            notes_path.parent.mkdir(parents=True, exist_ok=True)
+            notes_path.write_text(notes, encoding="utf-8")
+            logger.info("Saved notes file: %s", notes_path)
 
-    @function_tool()
-    async def go_to_phase(
-        self, context: RunContext, phase: int
-    ) -> Agent | tuple[Agent, str | None] | str:
-        """Switch to a different phase (1, 2, 3, or 4). Only call when the author asks to move to another phase—never call for the phase you are already in."""
+        structure = await optimize_artifact("structure", transcript)
+        if structure.startswith("Error:"):
+            logger.error("Structure generation failed: %s", structure)
+            return
 
-        if phase not in PHASES:
-            return f"Invalid phase. Please choose from: {', '.join(str(n) for n in PHASES)}."
-        if phase == self.phase:
-            return (
-                f"Already in phase {phase}. Do not call go_to_phase again; continue the "
-                "conversation in this phase."
-            )
-
-        next_class = self._REGISTRY.get(phase)
-        if next_class is None:
-            return "Invalid phase."
-
-        # Guard: a project must exist before we can save context or move on.
-        if projects.get_active_project() is None:
-            return "Error: No active project. You must call create_new_project first before switching phases."
-
-        # Optimise the current phase's transcript before handing off.
-        await self._run_context_optimization()
-
-        agent_name = PHASES[phase].agent_name
-        transfer_msg = random.choice(TRANSFER_MESSAGES).format(name=agent_name)
-        handle = context.session.say(transfer_msg, allow_interruptions=False)
-        await handle.wait_for_playout()
-
-        next_agent = next_class(
-            transcript_dir=self.transcript_dir,
-            chat_ctx=context.session.history,
-        )
-        return (next_agent, None)
+        structure_path = proj.root_dir / "structure.md"
+        structure_path.parent.mkdir(parents=True, exist_ok=True)
+        structure_path.write_text(structure, encoding="utf-8")
+        logger.info("Saved structure file: %s", structure_path)

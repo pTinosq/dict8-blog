@@ -27,9 +27,6 @@ dev-agent:
 dev-agent-console:
 	uv run --env-file=.env python -m dict8.agent console
 
-dev-worker:
-	uv run --env-file=.env python -m dict8.worker
-
 dev-build-styles:
 	uv run --env-file=.env python -m dict8.build_styles
 

@@ -1,1 +1,0 @@
-Greet the author in one short sentence. Say you're here to understand what they want to write about and that you'll ask some questions. Then, in the same brief reply, ask a single open question about the new post they want to write now. Sound warm and focused, not scripted.

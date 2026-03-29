@@ -1,0 +1,1 @@
+Greet the author in one short sentence. Say you will help shape their blog idea and keep concise notes plus a proposed structure as they talk. Then ask one open question about what they want to write.
